@@ -24,16 +24,46 @@
       </p>
 
       <div class="actions">
-        <button class="primary-button" id="takePhotoButton" type="button">
-          <span class="button-icon">📷</span>
-          Take a Photo
-        </button>
+  <button class="primary-button" id="takePhotoButton" type="button">
+    <span class="button-icon">📷</span>
+    Take a Photo
+  </button>
 
-        <button class="secondary-button" id="uploadPhotoButton" type="button">
-          <span class="button-icon">🖼️</span>
-          Upload from Gallery
-        </button>
-      </div>
+  <button class="secondary-button" id="uploadPhotoButton" type="button">
+    <span class="button-icon">🖼️</span>
+    Upload from Gallery
+  </button>
+</div>
+
+<div class="camera-screen" id="cameraScreen" hidden>
+  <video id="cameraPreview" autoplay playsinline></video>
+
+  <div class="camera-controls">
+    <button class="capture-button" id="captureButton" type="button">
+      <span></span>
+    </button>
+
+    <button class="close-camera-button" id="closeCameraButton" type="button">
+      Close
+    </button>
+  </div>
+</div>
+
+<canvas id="photoCanvas" hidden></canvas>
+
+<div class="photo-preview" id="photoPreview" hidden>
+  <img id="previewImage" alt="Your captured wedding memory" />
+
+  <div class="preview-actions">
+    <button class="primary-button" id="retakeButton" type="button">
+      Retake
+    </button>
+
+    <button class="secondary-button" id="usePhotoButton" type="button">
+      Use This Photo
+    </button>
+  </div>
+</div>
 
       <p class="privacy-note">
         Your photos will only be shared with the bride and groom.
