@@ -14,9 +14,9 @@ const retakeButton = document.getElementById("retakeButton");
 const usePhotoButton = document.getElementById("usePhotoButton");
 
 let cameraStream = null;
-let capturedPhoto = null;
 let photoSource = null;
 let imageCapture = null;
+let capturedPhotoBlob = null;
 
 
 // Open camera
@@ -100,22 +100,17 @@ captureButton.addEventListener("click", async () => {
     }
 
     // Convert the photo to a data URL for our preview.
-    const reader = new FileReader();
+capturedPhotoBlob = photoBlob;
+photoSource = "camera";
 
-    reader.onload = () => {
-      capturedPhoto = reader.result;
-      photoSource = "camera";
+previewImage.src = URL.createObjectURL(capturedPhotoBlob);
 
-      previewImage.src = capturedPhoto;
-      retakeButton.textContent = "Retake";
+retakeButton.textContent = "Retake";
 
-      stopCamera();
+stopCamera();
 
-      cameraScreen.hidden = true;
-      photoPreview.hidden = false;
-    };
-
-    reader.readAsDataURL(photoBlob);
+cameraScreen.hidden = true;
+photoPreview.hidden = false;
 
   } catch (error) {
     console.error("Photo capture error:", error);
@@ -191,8 +186,15 @@ function stopCamera() {
 
 
 // Temporary button
-usePhotoButton.addEventListener("click", () => {
-  alert("Photo captured! Upload functionality comes next. ❤️");
+
+  if (!capturedPhotoBlob) {
+    alert("Please select or capture a photo first.");
+    return;
+  }
+
+  console.log("Photo ready for upload:", capturedPhotoBlob);
+
+  alert("Photo is ready! Upload functionality comes next. ❤️");
 });
 
 
@@ -217,16 +219,12 @@ galleryInput.addEventListener("change", () => {
 
   const reader = new FileReader();
 
-  reader.onload = (event) => {
-    capturedPhoto = event.target.result;
-    photoSource = "gallery";
+    capturedPhotoBlob = file;
+  photoSource = "gallery";
   
-    previewImage.src = capturedPhoto;
+  previewImage.src = URL.createObjectURL(capturedPhotoBlob);
   
-    retakeButton.textContent = "Choose Another Photo";
-  
-    photoPreview.hidden = false;
-  };
+  retakeButton.textContent = "Choose Another Photo";
 
-  reader.readAsDataURL(file);
+photoPreview.hidden = false;
 });
