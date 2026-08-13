@@ -1,4 +1,3 @@
-const takePhotoButton = document.getElementById("takePhotoButton");
 const cameraScreen = document.getElementById("cameraScreen");
 const uploadPhotoButton = document.getElementById("uploadPhotoButton");
 const galleryInput = document.getElementById("galleryInput");
@@ -22,15 +21,18 @@ const nativeCameraInput =
 
 let cameraStream = null;
 let photoSource = null;
-let imageCapture = null;
 let capturedPhotoBlob = null;
 
 
+// ============================================
+// NATIVE PHONE CAMERA
+// ============================================
 
-// Temporary native camera test
 nativeCameraButton.addEventListener("click", () => {
+  nativeCameraInput.value = "";
   nativeCameraInput.click();
 });
+
 
 nativeCameraInput.addEventListener("change", () => {
   const file = nativeCameraInput.files[0];
@@ -39,7 +41,12 @@ nativeCameraInput.addEventListener("change", () => {
     return;
   }
 
-  console.log("Native camera returned file:", file);
+  if (!file.type.startsWith("image/")) {
+    alert("Please choose an image.");
+    return;
+  }
+
+  console.log("Native camera photo:", file);
 
   capturedPhotoBlob = file;
   photoSource = "camera";
@@ -51,114 +58,47 @@ nativeCameraInput.addEventListener("change", () => {
   photoPreview.hidden = false;
 });
 
-// Open camera
-takePhotoButton.addEventListener("click", async () => {
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: {
-          ideal: "environment"
-        },
-        width: {
-          ideal: 3840
-        },
-        height: {
-          ideal: 2160
-        },
-        frameRate: {
-          ideal: 30
-        }
-      },
-      audio: false
-    });
 
-    cameraPreview.srcObject = cameraStream;
+// ============================================
+// GALLERY
+// ============================================
 
-    const videoTrack = cameraStream.getVideoTracks()[0];
-
-    console.log("Camera settings:", videoTrack.getSettings());
-
-    if ("ImageCapture" in window) {
-      imageCapture = new ImageCapture(videoTrack);
-    }
-
-    cameraScreen.hidden = false;
-
-  } catch (error) {
-    console.error("Camera error:", error);
-
-    alert(
-      "We couldn't access your camera. Please allow camera access and try again."
-    );
-  }
+uploadPhotoButton.addEventListener("click", () => {
+  galleryInput.value = "";
+  galleryInput.click();
 });
 
 
-// Capture photo
-captureButton.addEventListener("click", async () => {
-  try {
-    let photoBlob;
+galleryInput.addEventListener("change", () => {
+  const file = galleryInput.files[0];
 
-    // Use the camera's still-photo capability when supported.
-    if (imageCapture) {
-      photoBlob = await imageCapture.takePhoto();
-
-    } else {
-      // Fallback for browsers that don't support ImageCapture.
-      const width = cameraPreview.videoWidth;
-      const height = cameraPreview.videoHeight;
-
-      if (!width || !height) {
-        alert("Camera is not ready yet. Please try again.");
-        return;
-      }
-
-      photoCanvas.width = width;
-      photoCanvas.height = height;
-
-      const context = photoCanvas.getContext("2d");
-
-      context.drawImage(
-        cameraPreview,
-        0,
-        0,
-        width,
-        height
-      );
-
-      photoBlob = await new Promise((resolve) => {
-        photoCanvas.toBlob(
-          resolve,
-          "image/jpeg",
-          0.95
-        );
-      });
-    }
-
-    capturedPhotoBlob = photoBlob;
-    photoSource = "camera";
-
-    previewImage.src = URL.createObjectURL(capturedPhotoBlob);
-
-    retakeButton.textContent = "Retake";
-
-    stopCamera();
-
-    cameraScreen.hidden = true;
-    photoPreview.hidden = false;
-
-  } catch (error) {
-    console.error("Photo capture error:", error);
-
-    alert(
-      "We couldn't capture the photo. Please try again."
-    );
+  if (!file) {
+    return;
   }
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please choose an image.");
+    return;
+  }
+
+  console.log("Gallery photo:", file);
+
+  capturedPhotoBlob = file;
+  photoSource = "gallery";
+
+  previewImage.src = URL.createObjectURL(file);
+
+  retakeButton.textContent = "Choose Another Photo";
+
+  photoPreview.hidden = false;
 });
 
 
-// Retake photo or choose another gallery photo
-retakeButton.addEventListener("click", async () => {
+// ============================================
+// PREVIEW / RETAKE
+// ============================================
+
+retakeButton.addEventListener("click", () => {
   photoPreview.hidden = true;
 
   if (photoSource === "gallery") {
@@ -167,71 +107,15 @@ retakeButton.addEventListener("click", async () => {
     return;
   }
 
-  try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: {
-          ideal: "environment"
-        },
-        width: {
-          ideal: 3840
-        },
-        height: {
-          ideal: 2160
-        },
-        frameRate: {
-          ideal: 30
-        }
-      },
-      audio: false
-    });
-
-    cameraPreview.srcObject = cameraStream;
-
-    const videoTrack = cameraStream.getVideoTracks()[0];
-
-    console.log("Camera settings:", videoTrack.getSettings());
-
-    if ("ImageCapture" in window) {
-      imageCapture = new ImageCapture(videoTrack);
-    }
-
-    cameraScreen.hidden = false;
-
-  } catch (error) {
-    console.error("Camera error:", error);
-
-    alert(
-      "We couldn't access your camera. Please allow camera access and try again."
-    );
-  }
+  nativeCameraInput.value = "";
+  nativeCameraInput.click();
 });
 
 
-// Close camera
-closeCameraButton.addEventListener("click", () => {
-  stopCamera();
-  cameraScreen.hidden = true;
-});
+// ============================================
+// USE PHOTO
+// ============================================
 
-
-// Stop camera
-function stopCamera() {
-  if (!cameraStream) {
-    return;
-  }
-
-  cameraStream.getTracks().forEach((track) => {
-    track.stop();
-  });
-
-  cameraStream = null;
-  cameraPreview.srcObject = null;
-  imageCapture = null;
-}
-
-
-// Use selected photo
 usePhotoButton.addEventListener("click", async () => {
   if (!capturedPhotoBlob) {
     alert("Please select or capture a photo first.");
@@ -244,7 +128,8 @@ usePhotoButton.addEventListener("click", async () => {
 
     const originalSize = capturedPhotoBlob.size;
 
-    const compressedBlob = await compressImage(capturedPhotoBlob);
+    const compressedBlob =
+      await compressImage(capturedPhotoBlob);
 
     const compressedSize = compressedBlob.size;
 
@@ -255,7 +140,9 @@ usePhotoButton.addEventListener("click", async () => {
 
     usePhotoButton.textContent = "Photo Ready ❤️";
 
-    alert("Photo prepared successfully! Upload functionality comes next. ❤️");
+    alert(
+      "Photo prepared successfully! Upload functionality comes next. ❤️"
+    );
 
   } catch (error) {
     console.error("Compression error:", error);
@@ -270,34 +157,47 @@ usePhotoButton.addEventListener("click", async () => {
 });
 
 
-// Open the device photo picker
-uploadPhotoButton.addEventListener("click", () => {
-  galleryInput.click();
+// ============================================
+// OLD CUSTOM BROWSER CAMERA
+// ============================================
+//
+// We are keeping this code in the project for now,
+// but it is NOT used by the main Take a Photo button.
+//
+// We can use it later as a fallback if testing shows
+// that some devices don't support native camera capture.
+//
+
+captureButton.addEventListener("click", () => {
+  alert(
+    "The custom browser camera is currently disabled."
+  );
 });
 
 
-// Handle selected gallery photo
-galleryInput.addEventListener("change", () => {
-  const file = galleryInput.files[0];
-
-  if (!file) {
-    return;
-  }
-
-  if (!file.type.startsWith("image/")) {
-    alert("Please choose an image.");
-    return;
-  }
-
-  capturedPhotoBlob = file;
-  photoSource = "gallery";
-
-  previewImage.src = URL.createObjectURL(capturedPhotoBlob);
-
-  retakeButton.textContent = "Choose Another Photo";
-
-  photoPreview.hidden = false;
+closeCameraButton.addEventListener("click", () => {
+  stopCamera();
+  cameraScreen.hidden = true;
 });
+
+
+function stopCamera() {
+  if (!cameraStream) {
+    return;
+  }
+
+  cameraStream.getTracks().forEach((track) => {
+    track.stop();
+  });
+
+  cameraStream = null;
+  cameraPreview.srcObject = null;
+}
+
+
+// ============================================
+// IMAGE COMPRESSION
+// ============================================
 
 async function compressImage(blob) {
   const bitmap = await createImageBitmap(blob);
@@ -337,20 +237,23 @@ async function compressImage(blob) {
 
   bitmap.close();
 
-  const compressedBlob = await new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (result) => {
-        if (result) {
-          resolve(result);
-        } else {
-          reject(new Error("Image compression failed."));
-        }
-      },
-      "image/jpeg",
-      0.90
-    );
-  });
+  const compressedBlob = await new Promise(
+    (resolve, reject) => {
+      canvas.toBlob(
+        (result) => {
+          if (result) {
+            resolve(result);
+          } else {
+            reject(
+              new Error("Image compression failed.")
+            );
+          }
+        },
+        "image/jpeg",
+        0.90
+      );
+    }
+  );
 
   return compressedBlob;
 }
-
