@@ -2,6 +2,7 @@ const takePhotoButton = document.getElementById("takePhotoButton");
 const cameraScreen = document.getElementById("cameraScreen");
 const uploadPhotoButton = document.getElementById("uploadPhotoButton");
 const galleryInput = document.getElementById("galleryInput");
+
 const cameraPreview = document.getElementById("cameraPreview");
 const captureButton = document.getElementById("captureButton");
 const closeCameraButton = document.getElementById("closeCameraButton");
@@ -22,33 +23,36 @@ let capturedPhotoBlob = null;
 // Open camera
 takePhotoButton.addEventListener("click", async () => {
   try {
-   cameraStream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: {
-        ideal: "environment"
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: {
+          ideal: "environment"
+        },
+        width: {
+          ideal: 3840
+        },
+        height: {
+          ideal: 2160
+        },
+        frameRate: {
+          ideal: 30
+        }
       },
-      width: {
-        ideal: 3840
-      },
-      height: {
-        ideal: 2160
-      },
-      frameRate: {
-        ideal: 30
-      }
-    },
-    audio: false
-  });
+      audio: false
+    });
 
-  cameraPreview.srcObject = cameraStream;
+    cameraPreview.srcObject = cameraStream;
 
-  const videoTrack = cameraStream.getVideoTracks()[0];
-  console.log("Camera settings:", videoTrack.getSettings());
-  if ("ImageCapture" in window) {
-    imageCapture = new ImageCapture(videoTrack);
-  }
-  
-  cameraScreen.hidden = false;
+    const videoTrack = cameraStream.getVideoTracks()[0];
+
+    console.log("Camera settings:", videoTrack.getSettings());
+
+    if ("ImageCapture" in window) {
+      imageCapture = new ImageCapture(videoTrack);
+    }
+
+    cameraScreen.hidden = false;
+
   } catch (error) {
     console.error("Camera error:", error);
 
@@ -67,6 +71,7 @@ captureButton.addEventListener("click", async () => {
     // Use the camera's still-photo capability when supported.
     if (imageCapture) {
       photoBlob = await imageCapture.takePhoto();
+
     } else {
       // Fallback for browsers that don't support ImageCapture.
       const width = cameraPreview.videoWidth;
@@ -99,18 +104,17 @@ captureButton.addEventListener("click", async () => {
       });
     }
 
-    // Convert the photo to a data URL for our preview.
-capturedPhotoBlob = photoBlob;
-photoSource = "camera";
+    capturedPhotoBlob = photoBlob;
+    photoSource = "camera";
 
-previewImage.src = URL.createObjectURL(capturedPhotoBlob);
+    previewImage.src = URL.createObjectURL(capturedPhotoBlob);
 
-retakeButton.textContent = "Retake";
+    retakeButton.textContent = "Retake";
 
-stopCamera();
+    stopCamera();
 
-cameraScreen.hidden = true;
-photoPreview.hidden = false;
+    cameraScreen.hidden = true;
+    photoPreview.hidden = false;
 
   } catch (error) {
     console.error("Photo capture error:", error);
@@ -122,7 +126,7 @@ photoPreview.hidden = false;
 });
 
 
-// Retake
+// Retake photo or choose another gallery photo
 retakeButton.addEventListener("click", async () => {
   photoPreview.hidden = true;
 
@@ -152,7 +156,17 @@ retakeButton.addEventListener("click", async () => {
     });
 
     cameraPreview.srcObject = cameraStream;
+
+    const videoTrack = cameraStream.getVideoTracks()[0];
+
+    console.log("Camera settings:", videoTrack.getSettings());
+
+    if ("ImageCapture" in window) {
+      imageCapture = new ImageCapture(videoTrack);
+    }
+
     cameraScreen.hidden = false;
+
   } catch (error) {
     console.error("Camera error:", error);
 
@@ -182,11 +196,12 @@ function stopCamera() {
 
   cameraStream = null;
   cameraPreview.srcObject = null;
+  imageCapture = null;
 }
 
 
-// Temporary button
-
+// Use selected photo
+usePhotoButton.addEventListener("click", () => {
   if (!capturedPhotoBlob) {
     alert("Please select or capture a photo first.");
     return;
@@ -204,7 +219,7 @@ uploadPhotoButton.addEventListener("click", () => {
 });
 
 
-// Handle selected photo
+// Handle selected gallery photo
 galleryInput.addEventListener("change", () => {
   const file = galleryInput.files[0];
 
@@ -217,14 +232,12 @@ galleryInput.addEventListener("change", () => {
     return;
   }
 
-  const reader = new FileReader();
-
-    capturedPhotoBlob = file;
+  capturedPhotoBlob = file;
   photoSource = "gallery";
-  
+
   previewImage.src = URL.createObjectURL(capturedPhotoBlob);
-  
+
   retakeButton.textContent = "Choose Another Photo";
 
-photoPreview.hidden = false;
+  photoPreview.hidden = false;
 });
