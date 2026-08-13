@@ -15,6 +15,7 @@ const usePhotoButton = document.getElementById("usePhotoButton");
 
 let cameraStream = null;
 let capturedPhoto = null;
+let photoSource = null;
 
 
 // Open camera
@@ -64,8 +65,11 @@ captureButton.addEventListener("click", () => {
   );
 
   capturedPhoto = photoCanvas.toDataURL("image/jpeg", 0.9);
-
+  photoSource = "camera";
+  
   previewImage.src = capturedPhoto;
+  
+  retakeButton.textContent = "Retake"
 
   stopCamera();
 
@@ -77,6 +81,12 @@ captureButton.addEventListener("click", () => {
 // Retake
 retakeButton.addEventListener("click", async () => {
   photoPreview.hidden = true;
+
+  if (photoSource === "gallery") {
+    galleryInput.value = "";
+    galleryInput.click();
+    return;
+  }
 
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
@@ -149,9 +159,12 @@ galleryInput.addEventListener("change", () => {
 
   reader.onload = (event) => {
     capturedPhoto = event.target.result;
-
+    photoSource = "gallery";
+  
     previewImage.src = capturedPhoto;
-
+  
+    retakeButton.textContent = "Choose Another Photo";
+  
     photoPreview.hidden = false;
   };
 
