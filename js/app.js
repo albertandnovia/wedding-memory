@@ -14,11 +14,42 @@ const previewImage = document.getElementById("previewImage");
 const retakeButton = document.getElementById("retakeButton");
 const usePhotoButton = document.getElementById("usePhotoButton");
 
+const nativeCameraButton =
+  document.getElementById("nativeCameraButton");
+
+const nativeCameraInput =
+  document.getElementById("nativeCameraInput");
+
 let cameraStream = null;
 let photoSource = null;
 let imageCapture = null;
 let capturedPhotoBlob = null;
 
+
+
+// Temporary native camera test
+nativeCameraButton.addEventListener("click", () => {
+  nativeCameraInput.click();
+});
+
+nativeCameraInput.addEventListener("change", () => {
+  const file = nativeCameraInput.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  console.log("Native camera returned file:", file);
+
+  capturedPhotoBlob = file;
+  photoSource = "camera";
+
+  previewImage.src = URL.createObjectURL(file);
+
+  retakeButton.textContent = "Retake";
+
+  photoPreview.hidden = false;
+});
 
 // Open camera
 takePhotoButton.addEventListener("click", async () => {
