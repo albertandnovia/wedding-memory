@@ -201,15 +201,41 @@ function stopCamera() {
 
 
 // Use selected photo
-usePhotoButton.addEventListener("click", () => {
+usePhotoButton.addEventListener("click", async () => {
   if (!capturedPhotoBlob) {
     alert("Please select or capture a photo first.");
     return;
   }
 
-  console.log("Photo ready for upload:", capturedPhotoBlob);
+  try {
+    usePhotoButton.disabled = true;
+    usePhotoButton.textContent = "Preparing Photo...";
 
-  alert("Photo is ready! Upload functionality comes next. ❤️");
+    const originalSize = capturedPhotoBlob.size;
+
+    const compressedBlob = await compressImage(capturedPhotoBlob);
+
+    const compressedSize = compressedBlob.size;
+
+    console.log("Original photo size:", originalSize);
+    console.log("Compressed photo size:", compressedSize);
+
+    capturedPhotoBlob = compressedBlob;
+
+    usePhotoButton.textContent = "Photo Ready ❤️";
+
+    alert("Photo prepared successfully! Upload functionality comes next. ❤️");
+
+  } catch (error) {
+    console.error("Compression error:", error);
+
+    alert(
+      "We couldn't prepare your photo. Please try again."
+    );
+
+    usePhotoButton.disabled = false;
+    usePhotoButton.textContent = "Use This Photo";
+  }
 });
 
 
@@ -241,3 +267,59 @@ galleryInput.addEventListener("change", () => {
 
   photoPreview.hidden = false;
 });
+
+async function compressImage(blob) {
+  const bitmap = await createImageBitmap(blob);
+
+  const maxDimension = 3000;
+
+  let width = bitmap.width;
+  let height = bitmap.height;
+
+  // Only resize if the image is larger than our maximum dimension.
+  if (width > maxDimension || height > maxDimension) {
+    const scale = Math.min(
+      maxDimension / width,
+      maxDimension / height
+    );
+
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+
+  const canvas = document.createElement("canvas");
+
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d", {
+    alpha: false
+  });
+
+  context.drawImage(
+    bitmap,
+    0,
+    0,
+    width,
+    height
+  );
+
+  bitmap.close();
+
+  const compressedBlob = await new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (result) => {
+        if (result) {
+          resolve(result);
+        } else {
+          reject(new Error("Image compression failed."));
+        }
+      },
+      "image/jpeg",
+      0.90
+    );
+  });
+
+  return compressedBlob;
+}
+
