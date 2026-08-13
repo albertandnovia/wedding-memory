@@ -16,21 +16,39 @@ const usePhotoButton = document.getElementById("usePhotoButton");
 let cameraStream = null;
 let capturedPhoto = null;
 let photoSource = null;
+let imageCapture = null;
 
 
 // Open camera
 takePhotoButton.addEventListener("click", async () => {
   try {
-    cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: "environment"
+   cameraStream = await navigator.mediaDevices.getUserMedia({
+    video: {
+      facingMode: {
+        ideal: "environment"
       },
-      audio: false
-    });
+      width: {
+        ideal: 3840
+      },
+      height: {
+        ideal: 2160
+      },
+      frameRate: {
+        ideal: 30
+      }
+    },
+    audio: false
+  });
 
-    cameraPreview.srcObject = cameraStream;
+  cameraPreview.srcObject = cameraStream;
 
-    cameraScreen.hidden = false;
+  const videoTrack = cameraStream.getVideoTracks()[0];
+  console.log("Camera settings:", videoTrack.getSettings());
+  if ("ImageCapture" in window) {
+    imageCapture = new ImageCapture(videoTrack);
+  }
+  
+  cameraScreen.hidden = false;
   } catch (error) {
     console.error("Camera error:", error);
 
@@ -42,39 +60,70 @@ takePhotoButton.addEventListener("click", async () => {
 
 
 // Capture photo
-captureButton.addEventListener("click", () => {
-  const width = cameraPreview.videoWidth;
-  const height = cameraPreview.videoHeight;
+captureButton.addEventListener("click", async () => {
+  try {
+    let photoBlob;
 
-  if (!width || !height) {
-    alert("Camera is not ready yet. Please try again.");
-    return;
+    // Use the camera's still-photo capability when supported.
+    if (imageCapture) {
+      photoBlob = await imageCapture.takePhoto();
+    } else {
+      // Fallback for browsers that don't support ImageCapture.
+      const width = cameraPreview.videoWidth;
+      const height = cameraPreview.videoHeight;
+
+      if (!width || !height) {
+        alert("Camera is not ready yet. Please try again.");
+        return;
+      }
+
+      photoCanvas.width = width;
+      photoCanvas.height = height;
+
+      const context = photoCanvas.getContext("2d");
+
+      context.drawImage(
+        cameraPreview,
+        0,
+        0,
+        width,
+        height
+      );
+
+      photoBlob = await new Promise((resolve) => {
+        photoCanvas.toBlob(
+          resolve,
+          "image/jpeg",
+          0.95
+        );
+      });
+    }
+
+    // Convert the photo to a data URL for our preview.
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      capturedPhoto = reader.result;
+      photoSource = "camera";
+
+      previewImage.src = capturedPhoto;
+      retakeButton.textContent = "Retake";
+
+      stopCamera();
+
+      cameraScreen.hidden = true;
+      photoPreview.hidden = false;
+    };
+
+    reader.readAsDataURL(photoBlob);
+
+  } catch (error) {
+    console.error("Photo capture error:", error);
+
+    alert(
+      "We couldn't capture the photo. Please try again."
+    );
   }
-
-  photoCanvas.width = width;
-  photoCanvas.height = height;
-
-  const context = photoCanvas.getContext("2d");
-
-  context.drawImage(
-    cameraPreview,
-    0,
-    0,
-    width,
-    height
-  );
-
-  capturedPhoto = photoCanvas.toDataURL("image/jpeg", 0.9);
-  photoSource = "camera";
-  
-  previewImage.src = capturedPhoto;
-  
-  retakeButton.textContent = "Retake"
-
-  stopCamera();
-
-  cameraScreen.hidden = true;
-  photoPreview.hidden = false;
 });
 
 
@@ -91,7 +140,18 @@ retakeButton.addEventListener("click", async () => {
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
-        facingMode: "environment"
+        facingMode: {
+          ideal: "environment"
+        },
+        width: {
+          ideal: 3840
+        },
+        height: {
+          ideal: 2160
+        },
+        frameRate: {
+          ideal: 30
+        }
       },
       audio: false
     });
