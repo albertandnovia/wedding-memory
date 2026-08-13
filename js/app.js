@@ -1,5 +1,7 @@
 const takePhotoButton = document.getElementById("takePhotoButton");
 const cameraScreen = document.getElementById("cameraScreen");
+const uploadPhotoButton = document.getElementById("uploadPhotoButton");
+const galleryInput = document.getElementById("galleryInput");
 const cameraPreview = document.getElementById("cameraPreview");
 const captureButton = document.getElementById("captureButton");
 const closeCameraButton = document.getElementById("closeCameraButton");
@@ -121,4 +123,37 @@ function stopCamera() {
 // Temporary button
 usePhotoButton.addEventListener("click", () => {
   alert("Photo captured! Upload functionality comes next. ❤️");
+});
+
+
+// Open the device photo picker
+uploadPhotoButton.addEventListener("click", () => {
+  galleryInput.click();
+});
+
+
+// Handle selected photo
+galleryInput.addEventListener("change", () => {
+  const file = galleryInput.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please choose an image.");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = (event) => {
+    capturedPhoto = event.target.result;
+
+    previewImage.src = capturedPhoto;
+
+    photoPreview.hidden = false;
+  };
+
+  reader.readAsDataURL(file);
 });
