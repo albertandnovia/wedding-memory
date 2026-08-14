@@ -1,172 +1,284 @@
-const API_BASE =
-  "https://wedding-memory-api.albertandnovia.workers.dev";
+const cameraScreen = document.getElementById("cameraScreen");
+const uploadPhotoButton = document.getElementById("uploadPhotoButton");
+const galleryInput = document.getElementById("galleryInput");
 
-const gallery = document.getElementById("gallery");
-const photoCount = document.getElementById("photoCount");
-const refreshButton = document.getElementById("refreshButton");
+const cameraPreview = document.getElementById("cameraPreview");
+const captureButton = document.getElementById("captureButton");
+const closeCameraButton = document.getElementById("closeCameraButton");
 
-const lightbox = document.getElementById("lightbox");
-const lightboxImage = document.getElementById("lightboxImage");
-const lightboxClose = document.getElementById("lightboxClose");
+const photoCanvas = document.getElementById("photoCanvas");
+const photoPreview = document.getElementById("photoPreview");
+const previewImage = document.getElementById("previewImage");
 
+const retakeButton = document.getElementById("retakeButton");
+const usePhotoButton = document.getElementById("usePhotoButton");
 
-// ============================================
-// LOAD PHOTOS
-// ============================================
+const nativeCameraButton =
+  document.getElementById("nativeCameraButton");
 
-async function loadPhotos() {
-  gallery.innerHTML = `
-    <p class="loading">
-      Loading memories...
-    </p>
-  `;
+const nativeCameraInput =
+  document.getElementById("nativeCameraInput");
 
-  refreshButton.disabled = true;
-  refreshButton.textContent = "Loading...";
-
-  try {
-    const response = await fetch(`${API_BASE}/photos`);
-
-    if (!response.ok) {
-      throw new Error(
-        `Server returned ${response.status}`
-      );
-    }
-
-    const data = await response.json();
-
-    if (!data.success) {
-      throw new Error(
-        data.error || "Could not load photos."
-      );
-    }
-
-    photoCount.textContent = data.count;
-
-    renderPhotos(data.photos);
-
-  } catch (error) {
-    console.error("Gallery error:", error);
-
-    gallery.innerHTML = `
-      <div class="gallery-error">
-        <p>We couldn't load the memories.</p>
-        <button id="retryButton" type="button">
-          Try Again
-        </button>
-      </div>
-    `;
-
-    const retryButton =
-      document.getElementById("retryButton");
-
-    retryButton.addEventListener(
-      "click",
-      loadPhotos
-    );
-
-  } finally {
-    refreshButton.disabled = false;
-    refreshButton.textContent = "Refresh";
-  }
-}
+let cameraStream = null;
+let photoSource = null;
+let capturedPhotoBlob = null;
 
 
 // ============================================
-// RENDER GALLERY
+// NATIVE PHONE CAMERA
 // ============================================
 
-function renderPhotos(photos) {
-  if (!photos.length) {
-    gallery.innerHTML = `
-      <div class="empty-gallery">
-        <p>No memories uploaded yet.</p>
-      </div>
-    `;
+nativeCameraButton.addEventListener("click", () => {
+  nativeCameraInput.value = "";
+  nativeCameraInput.click();
+});
 
+
+nativeCameraInput.addEventListener("change", () => {
+  const file = nativeCameraInput.files[0];
+
+  if (!file) {
     return;
   }
 
-  gallery.innerHTML = "";
+  if (!file.type.startsWith("image/")) {
+    alert("Please choose an image.");
+    return;
+  }
 
-  photos.forEach((photo) => {
-    const item = document.createElement("button");
+  console.log("Native camera photo:", file);
 
-    item.className = "gallery-item";
-    item.type = "button";
+  capturedPhotoBlob = file;
+  photoSource = "camera";
 
-    const image = document.createElement("img");
+  previewImage.src = URL.createObjectURL(file);
 
-    image.src = photo.url;
-    image.alt = "Wedding memory";
-    image.loading = "lazy";
+  retakeButton.textContent = "Retake";
 
-    item.appendChild(image);
+  photoPreview.hidden = false;
+});
 
-    item.addEventListener("click", () => {
-      openLightbox(photo.url);
-    });
 
-    gallery.appendChild(item);
+// ============================================
+// GALLERY
+// ============================================
+
+uploadPhotoButton.addEventListener("click", () => {
+  galleryInput.value = "";
+  galleryInput.click();
+});
+
+
+galleryInput.addEventListener("change", () => {
+  const file = galleryInput.files[0];
+
+  if (!file) {
+    return;
+  }
+
+  if (!file.type.startsWith("image/")) {
+    alert("Please choose an image.");
+    return;
+  }
+
+  console.log("Gallery photo:", file);
+
+  capturedPhotoBlob = file;
+  photoSource = "gallery";
+
+  previewImage.src = URL.createObjectURL(file);
+
+  retakeButton.textContent = "Choose Another Photo";
+
+  photoPreview.hidden = false;
+});
+
+
+// ============================================
+// PREVIEW / RETAKE
+// ============================================
+
+retakeButton.addEventListener("click", () => {
+  photoPreview.hidden = true;
+
+  if (photoSource === "gallery") {
+    galleryInput.value = "";
+    galleryInput.click();
+    return;
+  }
+
+  nativeCameraInput.value = "";
+  nativeCameraInput.click();
+});
+
+
+// ============================================
+// USE PHOTO
+// ============================================
+
+usePhotoButton.addEventListener("click", async () => {
+  if (!capturedPhotoBlob) {
+    alert("Please select or capture a photo first.");
+    return;
+  }
+
+  try {
+    usePhotoButton.disabled = true;
+    usePhotoButton.textContent = "Preparing Photo...";
+
+    // Compress the approved photo
+    const compressedBlob = await compressImage(capturedPhotoBlob);
+
+    console.log(
+      "Original size:",
+      capturedPhotoBlob.size,
+      "Compressed size:",
+      compressedBlob.size
+    );
+
+    usePhotoButton.textContent = "Uploading...";
+
+    // Send the compressed image to our Cloudflare Worker
+    const response = await fetch(
+      "https://wedding-memory-api.albertandnovia.workers.dev/upload",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": compressedBlob.type || "image/jpeg"
+        },
+
+        body: compressedBlob
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || "Upload failed."
+      );
+    }
+
+    console.log("Upload successful:", result);
+
+    // Keep the compressed version as our current photo
+    capturedPhotoBlob = compressedBlob;
+
+    usePhotoButton.textContent = "Uploaded ❤️";
+
+    alert("Your photo was uploaded successfully! ❤️");
+
+  } catch (error) {
+    console.error("Upload error:", error);
+
+    alert(
+      "We couldn't upload your photo. Please check your connection and try again."
+    );
+
+    usePhotoButton.disabled = false;
+    usePhotoButton.textContent = "Use This Photo";
+  }
+});
+
+
+// ============================================
+// OLD CUSTOM BROWSER CAMERA
+// ============================================
+//
+// We are keeping this code in the project for now,
+// but it is NOT used by the main Take a Photo button.
+//
+// We can use it later as a fallback if testing shows
+// that some devices don't support native camera capture.
+//
+
+captureButton.addEventListener("click", () => {
+  alert(
+    "The custom browser camera is currently disabled."
+  );
+});
+
+
+closeCameraButton.addEventListener("click", () => {
+  stopCamera();
+  cameraScreen.hidden = true;
+});
+
+
+function stopCamera() {
+  if (!cameraStream) {
+    return;
+  }
+
+  cameraStream.getTracks().forEach((track) => {
+    track.stop();
   });
+
+  cameraStream = null;
+  cameraPreview.srcObject = null;
 }
 
 
 // ============================================
-// LIGHTBOX
+// IMAGE COMPRESSION
 // ============================================
 
-function openLightbox(photoUrl) {
-  lightboxImage.src = photoUrl;
-  lightbox.hidden = false;
+async function compressImage(blob) {
+  const bitmap = await createImageBitmap(blob);
 
-  document.body.style.overflow = "hidden";
-}
+  const maxDimension = 3000;
 
+  let width = bitmap.width;
+  let height = bitmap.height;
 
-function closeLightbox() {
-  lightbox.hidden = true;
-  lightboxImage.src = "";
+  // Only resize if the image is larger than our maximum dimension.
+  if (width > maxDimension || height > maxDimension) {
+    const scale = Math.min(
+      maxDimension / width,
+      maxDimension / height
+    );
 
-  document.body.style.overflow = "";
-}
-
-
-lightboxClose.addEventListener(
-  "click",
-  closeLightbox
-);
-
-
-lightbox.addEventListener("click", (event) => {
-  if (event.target === lightbox) {
-    closeLightbox();
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
   }
-});
 
+  const canvas = document.createElement("canvas");
 
-document.addEventListener("keydown", (event) => {
-  if (
-    event.key === "Escape" &&
-    !lightbox.hidden
-  ) {
-    closeLightbox();
-  }
-});
+  canvas.width = width;
+  canvas.height = height;
 
+  const context = canvas.getContext("2d", {
+    alpha: false
+  });
 
-// ============================================
-// REFRESH
-// ============================================
+  context.drawImage(
+    bitmap,
+    0,
+    0,
+    width,
+    height
+  );
 
-refreshButton.addEventListener(
-  "click",
-  loadPhotos
-);
+  bitmap.close();
 
+  const compressedBlob = await new Promise(
+    (resolve, reject) => {
+      canvas.toBlob(
+        (result) => {
+          if (result) {
+            resolve(result);
+          } else {
+            reject(
+              new Error("Image compression failed.")
+            );
+          }
+        },
+        "image/jpeg",
+        0.90
+      );
+    }
+  );
 
-// ============================================
-// START
-// ============================================
-
-loadPhotos();
+  return compressedBlob;
+}
