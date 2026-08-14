@@ -126,29 +126,54 @@ usePhotoButton.addEventListener("click", async () => {
     usePhotoButton.disabled = true;
     usePhotoButton.textContent = "Preparing Photo...";
 
-    const originalSize = capturedPhotoBlob.size;
+    // Compress the approved photo
+    const compressedBlob = await compressImage(capturedPhotoBlob);
 
-    const compressedBlob =
-      await compressImage(capturedPhotoBlob);
-
-    const compressedSize = compressedBlob.size;
-
-    console.log("Original photo size:", originalSize);
-    console.log("Compressed photo size:", compressedSize);
-
-    capturedPhotoBlob = compressedBlob;
-
-    usePhotoButton.textContent = "Photo Ready ❤️";
-
-    alert(
-      "Photo prepared successfully! Upload functionality comes next. ❤️"
+    console.log(
+      "Original size:",
+      capturedPhotoBlob.size,
+      "Compressed size:",
+      compressedBlob.size
     );
 
+    usePhotoButton.textContent = "Uploading...";
+
+    // Send the compressed image to our Cloudflare Worker
+    const response = await fetch(
+      "https://wedding-memory-api.albertandnovia.workers.dev/upload",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": compressedBlob.type || "image/jpeg"
+        },
+
+        body: compressedBlob
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      throw new Error(
+        result.error || "Upload failed."
+      );
+    }
+
+    console.log("Upload successful:", result);
+
+    // Keep the compressed version as our current photo
+    capturedPhotoBlob = compressedBlob;
+
+    usePhotoButton.textContent = "Uploaded ❤️";
+
+    alert("Your photo was uploaded successfully! ❤️");
+
   } catch (error) {
-    console.error("Compression error:", error);
+    console.error("Upload error:", error);
 
     alert(
-      "We couldn't prepare your photo. Please try again."
+      "We couldn't upload your photo. Please check your connection and try again."
     );
 
     usePhotoButton.disabled = false;
