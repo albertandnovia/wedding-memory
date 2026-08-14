@@ -4,96 +4,65 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>Wedding Memories</title>
+  <title>Wedding Memories Admin</title>
 
-  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
-  <main class="page-shell">
-    <section class="hero-card">
-      <div class="heart" aria-hidden="true">❤</div>
 
-      <p class="eyebrow">Albert & Novia</p>
+  <main class="admin-shell">
 
-      <h1>Capture Our Day Through Your Eyes</h1>
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Albert & Novia</p>
+        <h1>Wedding Memories</h1>
+      </div>
 
-      <p class="intro">
-        Every smile, every laugh, and every little moment you capture
-        becomes a memory we’ll treasure forever.
-      </p>
+      <button id="refreshButton" type="button">
+        Refresh
+      </button>
+    </header>
 
-    <div class="actions">
-  <button
-  class="primary-button"
-  id="nativeCameraButton"
-  type="button"
->
-  <span class="button-icon">📷</span>
-  Take a Photo
-</button>
-
-<button
-  class="secondary-button"
-  id="uploadPhotoButton"
-  type="button"
->
-  <span class="button-icon">🖼️</span>
-  Choose a Photo
-</button>
-
-  <input
-    type="file"
-    id="galleryInput"
-    accept="image/*"
-    hidden
-  />
-
-  <input
-    type="file"
-    id="nativeCameraInput"
-    accept="image/*"
-    capture="environment"
-    hidden
-  />
-</div>
-
-<div class="camera-screen" id="cameraScreen" hidden>
-  <video id="cameraPreview" autoplay playsinline></video>
-
-  <div class="camera-controls">
-    <button class="capture-button" id="captureButton" type="button">
-      <span></span>
-    </button>
-
-    <button class="close-camera-button" id="closeCameraButton" type="button">
-      Close
-    </button>
-  </div>
-</div>
-
-<canvas id="photoCanvas" hidden></canvas>
-
-<div class="photo-preview" id="photoPreview" hidden>
-  <img id="previewImage" alt="Your captured wedding memory" />
-
-  <div class="preview-actions">
-    <button class="primary-button" id="retakeButton" type="button">
-      Retake
-    </button>
-
-    <button class="secondary-button" id="usePhotoButton" type="button">
-      Use This Photo
-    </button>
-  </div>
-</div>
-
-      <p class="privacy-note">
-        Your photos will only be shared with the bride and groom.
+    <section class="stats">
+      <p>
+        <strong id="photoCount">0</strong>
+        photos collected
       </p>
     </section>
+
+    <section
+      class="gallery"
+      id="gallery"
+      aria-live="polite"
+    >
+      <p class="loading">
+        Loading memories...
+      </p>
+    </section>
+
   </main>
 
-  <script src="js/app.js"></script>
+  <div
+    class="lightbox"
+    id="lightbox"
+    hidden
+  >
+    <button
+      class="lightbox-close"
+      id="lightboxClose"
+      type="button"
+    >
+      ×
+    </button>
+
+    <img
+      id="lightboxImage"
+      alt="Wedding memory"
+    />
+  </div>
+
+  <script src="admin.js"></script>
+
 </body>
 </html>
