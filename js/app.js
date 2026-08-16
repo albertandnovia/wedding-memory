@@ -24,6 +24,12 @@ let photoSource = null;
 let capturedPhotoBlob = null;
 
 
+const uploadSuccess =
+  document.getElementById("uploadSuccess");
+
+const uploadAnotherButton =
+  document.getElementById("uploadAnotherButton");
+
 // ============================================
 // NATIVE PHONE CAMERA
 // ============================================
@@ -165,9 +171,8 @@ usePhotoButton.addEventListener("click", async () => {
     // Keep the compressed version as our current photo
     capturedPhotoBlob = compressedBlob;
 
-    usePhotoButton.textContent = "Uploaded ❤️";
-
-    alert("Your photo was uploaded successfully! ❤️");
+    photoPreview.hidden = true;
+    uploadSuccess.hidden = false;
 
   } catch (error) {
     console.error("Upload error:", error);
@@ -282,3 +287,18 @@ async function compressImage(blob) {
 
   return compressedBlob;
 }
+
+uploadAnotherButton.addEventListener("click", () => {
+  uploadSuccess.hidden = true;
+
+  capturedPhotoBlob = null;
+  photoSource = null;
+
+  previewImage.src = "";
+
+  usePhotoButton.disabled = false;
+  usePhotoButton.textContent = "Use This Photo";
+
+  galleryInput.value = "";
+  nativeCameraInput.value = "";
+});

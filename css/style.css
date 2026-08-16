@@ -234,3 +234,42 @@ h1 {
   gap: 12px;
   margin-top: 20px;
 }
+
+.upload-success {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.upload-success[hidden] {
+  display: none;
+}
+
+.success-icon {
+  width: 72px;
+  height: 72px;
+
+  display: grid;
+  place-items: center;
+
+  margin: 0 auto 20px;
+
+  border-radius: 50%;
+
+  background: #9f665f;
+  color: white;
+
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.upload-success h2 {
+  margin: 0 0 12px;
+}
+
+.upload-success p {
+  margin: 0 auto 24px;
+  max-width: 420px;
+
+  color: var(--muted);
+  line-height: 1.6;
+}
