@@ -217,7 +217,11 @@ uploadAllButton.addEventListener("click", async () => {
 
   batchProgress.hidden = false;
 
+  progressTrack.hidden = false;
+  progressBar.style.width = "0%";
+
   let uploadedCount = 0;
+
 
   try {
     for (
@@ -239,15 +243,23 @@ uploadAllButton.addEventListener("click", async () => {
       await uploadPhoto(compressedBlob);
 
       uploadedCount += 1;
+      const percent =
+        Math.round(
+          (uploadedCount / selectedGalleryFiles.length) * 100
+        );
+
+      progressBar.style.width = `${percent}%`;
 
       batchProgress.textContent =
         `${uploadedCount} of ${selectedGalleryFiles.length} uploaded`;
     }
 
-    selectedGalleryFiles = [];
+      progressBar.style.width = "100%";
 
-    batchPreview.hidden = true;
-    uploadSuccess.hidden = false;
+      selectedGalleryFiles = [];
+
+      batchPreview.hidden = true;
+      uploadSuccess.hidden = false;
 
   } catch (error) {
     console.error("Batch upload error:", error);
@@ -452,4 +464,7 @@ uploadAnotherButton.addEventListener("click", () => {
 
   galleryInput.value = "";
   nativeCameraInput.value = "";
+
+  progressTrack.hidden = true;
+  progressBar.style.width = "0%";
 });
