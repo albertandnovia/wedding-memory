@@ -56,6 +56,11 @@ const uploadAllButton =
 const batchProgress =
   document.getElementById("batchProgress");
 
+const progressTrack =
+  document.getElementById("progressTrack");
+
+const progressBar =
+  document.getElementById("progressBar");
 
 // ============================================
 // STATE
