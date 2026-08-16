@@ -1,17 +1,16 @@
-const cameraScreen = document.getElementById("cameraScreen");
-const uploadPhotoButton = document.getElementById("uploadPhotoButton");
-const galleryInput = document.getElementById("galleryInput");
+const API_UPLOAD_URL =
+  "https://wedding-memory-api.albertandnovia.workers.dev/upload";
 
-const cameraPreview = document.getElementById("cameraPreview");
-const captureButton = document.getElementById("captureButton");
-const closeCameraButton = document.getElementById("closeCameraButton");
 
-const photoCanvas = document.getElementById("photoCanvas");
-const photoPreview = document.getElementById("photoPreview");
-const previewImage = document.getElementById("previewImage");
+// ============================================
+// ELEMENTS
+// ============================================
 
-const retakeButton = document.getElementById("retakeButton");
-const usePhotoButton = document.getElementById("usePhotoButton");
+const uploadPhotoButton =
+  document.getElementById("uploadPhotoButton");
+
+const galleryInput =
+  document.getElementById("galleryInput");
 
 const nativeCameraButton =
   document.getElementById("nativeCameraButton");
@@ -19,11 +18,17 @@ const nativeCameraButton =
 const nativeCameraInput =
   document.getElementById("nativeCameraInput");
 
-let cameraStream = null;
-let photoSource = null;
-let capturedPhotoBlob = null;
-let selectedPhotoQueue = [];
-let currentPhotoIndex = 0;
+const photoPreview =
+  document.getElementById("photoPreview");
+
+const previewImage =
+  document.getElementById("previewImage");
+
+const retakeButton =
+  document.getElementById("retakeButton");
+
+const usePhotoButton =
+  document.getElementById("usePhotoButton");
 
 const uploadSuccess =
   document.getElementById("uploadSuccess");
@@ -31,8 +36,37 @@ const uploadSuccess =
 const uploadAnotherButton =
   document.getElementById("uploadAnotherButton");
 
+
+// Batch gallery elements
+const batchPreview =
+  document.getElementById("batchPreview");
+
+const batchGrid =
+  document.getElementById("batchGrid");
+
+const batchCount =
+  document.getElementById("batchCount");
+
+const chooseMoreButton =
+  document.getElementById("chooseMoreButton");
+
+const uploadAllButton =
+  document.getElementById("uploadAllButton");
+
+const batchProgress =
+  document.getElementById("batchProgress");
+
+
 // ============================================
-// NATIVE PHONE CAMERA
+// STATE
+// ============================================
+
+let capturedPhotoBlob = null;
+let selectedGalleryFiles = [];
+
+
+// ============================================
+// CAMERA
 // ============================================
 
 nativeCameraButton.addEventListener("click", () => {
@@ -53,15 +87,13 @@ nativeCameraInput.addEventListener("change", () => {
     return;
   }
 
-  console.log("Native camera photo:", file);
-
   capturedPhotoBlob = file;
-  photoSource = "camera";
 
   previewImage.src = URL.createObjectURL(file);
 
   retakeButton.textContent = "Retake";
 
+  batchPreview.hidden = true;
   photoPreview.hidden = false;
 });
 
@@ -71,6 +103,16 @@ nativeCameraInput.addEventListener("change", () => {
 // ============================================
 
 uploadPhotoButton.addEventListener("click", () => {
+  selectedGalleryFiles = [];
+
+  galleryInput.dataset.mode = "replace";
+  galleryInput.value = "";
+  galleryInput.click();
+});
+
+
+chooseMoreButton.addEventListener("click", () => {
+  galleryInput.dataset.mode = "append";
   galleryInput.value = "";
   galleryInput.click();
 });
@@ -92,57 +134,152 @@ galleryInput.addEventListener("change", () => {
     return;
   }
 
-  selectedPhotoQueue = imageFiles;
-  currentPhotoIndex = 0;
-  photoSource = "gallery";
+  if (galleryInput.dataset.mode === "append") {
+    selectedGalleryFiles.push(...imageFiles);
+  } else {
+    selectedGalleryFiles = imageFiles;
+  }
 
-  showCurrentQueuedPhoto();
+  renderBatchPreview();
 });
 
-function showCurrentQueuedPhoto() {
-  if (!selectedPhotoQueue.length) {
+
+// ============================================
+// BATCH PREVIEW
+// ============================================
+
+function renderBatchPreview() {
+  batchGrid.innerHTML = "";
+
+  batchCount.textContent =
+    `${selectedGalleryFiles.length} photo${
+      selectedGalleryFiles.length === 1 ? "" : "s"
+    } selected`;
+
+  selectedGalleryFiles.forEach((file, index) => {
+    const item = document.createElement("div");
+    item.className = "batch-item";
+
+    const image = document.createElement("img");
+    image.src = URL.createObjectURL(file);
+    image.alt = `Selected photo ${index + 1}`;
+
+    const removeButton =
+      document.createElement("button");
+
+    removeButton.type = "button";
+    removeButton.className = "batch-remove";
+    removeButton.textContent = "×";
+    removeButton.setAttribute(
+      "aria-label",
+      `Remove photo ${index + 1}`
+    );
+
+    removeButton.addEventListener("click", () => {
+      selectedGalleryFiles.splice(index, 1);
+
+      if (!selectedGalleryFiles.length) {
+        batchPreview.hidden = true;
+        return;
+      }
+
+      renderBatchPreview();
+    });
+
+    item.appendChild(image);
+    item.appendChild(removeButton);
+
+    batchGrid.appendChild(item);
+  });
+
+  photoPreview.hidden = true;
+  uploadSuccess.hidden = true;
+  batchPreview.hidden = false;
+}
+
+
+// ============================================
+// BATCH UPLOAD
+// ============================================
+
+uploadAllButton.addEventListener("click", async () => {
+  if (!selectedGalleryFiles.length) {
     return;
   }
 
-  const file = selectedPhotoQueue[currentPhotoIndex];
+  uploadAllButton.disabled = true;
+  chooseMoreButton.disabled = true;
 
-  capturedPhotoBlob = file;
+  batchProgress.hidden = false;
 
-  previewImage.src = URL.createObjectURL(file);
+  let uploadedCount = 0;
 
-  retakeButton.textContent =
-    selectedPhotoQueue.length > 1
-      ? `Photo ${currentPhotoIndex + 1} of ${selectedPhotoQueue.length}`
-      : "Choose Another Photo";
+  try {
+    for (
+      let i = 0;
+      i < selectedGalleryFiles.length;
+      i++
+    ) {
+      const file = selectedGalleryFiles[i];
 
-  photoPreview.hidden = false;
-}
+      batchProgress.textContent =
+        `Preparing ${i + 1} of ${selectedGalleryFiles.length}...`;
+
+      const compressedBlob =
+        await compressImage(file);
+
+      batchProgress.textContent =
+        `Uploading ${i + 1} of ${selectedGalleryFiles.length}...`;
+
+      await uploadPhoto(compressedBlob);
+
+      uploadedCount += 1;
+
+      batchProgress.textContent =
+        `${uploadedCount} of ${selectedGalleryFiles.length} uploaded`;
+    }
+
+    selectedGalleryFiles = [];
+
+    batchPreview.hidden = true;
+    uploadSuccess.hidden = false;
+
+  } catch (error) {
+    console.error("Batch upload error:", error);
+
+    // Remove photos that already uploaded successfully,
+    // so pressing retry does not upload them twice.
+    selectedGalleryFiles =
+      selectedGalleryFiles.slice(uploadedCount);
+
+    renderBatchPreview();
+
+    batchProgress.hidden = false;
+    batchProgress.textContent =
+      `${uploadedCount} uploaded successfully. ` +
+      `${selectedGalleryFiles.length} still need to upload.`;
+
+    uploadAllButton.disabled = false;
+    chooseMoreButton.disabled = false;
+  }
+});
+
 
 // ============================================
-// PREVIEW / RETAKE
+// SINGLE CAMERA PHOTO
 // ============================================
 
 retakeButton.addEventListener("click", () => {
   photoPreview.hidden = true;
-
-  if (photoSource === "gallery") {
-    galleryInput.value = "";
-    galleryInput.click();
-    return;
-  }
 
   nativeCameraInput.value = "";
   nativeCameraInput.click();
 });
 
 
-// ============================================
-// USE PHOTO
-// ============================================
-
 usePhotoButton.addEventListener("click", async () => {
   if (!capturedPhotoBlob) {
-    alert("Please select or capture a photo first.");
+    alert("Please capture a photo first.");
     return;
   }
 
@@ -150,69 +287,24 @@ usePhotoButton.addEventListener("click", async () => {
     usePhotoButton.disabled = true;
     usePhotoButton.textContent = "Preparing Photo...";
 
-    // Compress the approved photo
-    const compressedBlob = await compressImage(capturedPhotoBlob);
-
-    console.log(
-      "Original size:",
-      capturedPhotoBlob.size,
-      "Compressed size:",
-      compressedBlob.size
-    );
+    const compressedBlob =
+      await compressImage(capturedPhotoBlob);
 
     usePhotoButton.textContent = "Uploading...";
 
-    // Send the compressed image to our Cloudflare Worker
-    const response = await fetch(
-      "https://wedding-memory-api.albertandnovia.workers.dev/upload",
-      {
-        method: "POST",
+    await uploadPhoto(compressedBlob);
 
-        headers: {
-          "Content-Type": compressedBlob.type || "image/jpeg"
-        },
-
-        body: compressedBlob
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok || !result.success) {
-      throw new Error(
-        result.error || "Upload failed."
-      );
-    }
-
-    console.log("Upload successful:", result);
-
-    // Keep the compressed version as our current photo
-    capturedPhotoBlob = compressedBlob;
+    capturedPhotoBlob = null;
 
     photoPreview.hidden = true;
-
-    if (
-      photoSource === "gallery" &&
-      selectedPhotoQueue.length > 1 &&
-      currentPhotoIndex < selectedPhotoQueue.length - 1
-    ) {
-      currentPhotoIndex += 1;
-
-      usePhotoButton.disabled = false;
-      usePhotoButton.textContent = "Use This Photo";
-
-      showCurrentQueuedPhoto();
-
-      return;
-    }
-
-    uploadSuccess.hidden = false; 
+    uploadSuccess.hidden = false;
 
   } catch (error) {
     console.error("Upload error:", error);
 
     alert(
-      "We couldn't upload your photo. Please check your connection and try again."
+      "We couldn't upload your photo. " +
+      "Please check your connection and try again."
     );
 
     usePhotoButton.disabled = false;
@@ -222,40 +314,33 @@ usePhotoButton.addEventListener("click", async () => {
 
 
 // ============================================
-// OLD CUSTOM BROWSER CAMERA
+// UPLOAD HELPER
 // ============================================
-//
-// We are keeping this code in the project for now,
-// but it is NOT used by the main Take a Photo button.
-//
-// We can use it later as a fallback if testing shows
-// that some devices don't support native camera capture.
-//
 
-captureButton.addEventListener("click", () => {
-  alert(
-    "The custom browser camera is currently disabled."
+async function uploadPhoto(blob) {
+  const response = await fetch(
+    API_UPLOAD_URL,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type":
+          blob.type || "image/jpeg"
+      },
+
+      body: blob
+    }
   );
-});
 
+  const result = await response.json();
 
-closeCameraButton.addEventListener("click", () => {
-  stopCamera();
-  cameraScreen.hidden = true;
-});
-
-
-function stopCamera() {
-  if (!cameraStream) {
-    return;
+  if (!response.ok || !result.success) {
+    throw new Error(
+      result.error || "Upload failed."
+    );
   }
 
-  cameraStream.getTracks().forEach((track) => {
-    track.stop();
-  });
-
-  cameraStream = null;
-  cameraPreview.srcObject = null;
+  return result;
 }
 
 
@@ -264,32 +349,40 @@ function stopCamera() {
 // ============================================
 
 async function compressImage(blob) {
-  const bitmap = await createImageBitmap(blob);
+  const bitmap =
+    await createImageBitmap(blob);
 
   const maxDimension = 3000;
 
   let width = bitmap.width;
   let height = bitmap.height;
 
-  // Only resize if the image is larger than our maximum dimension.
-  if (width > maxDimension || height > maxDimension) {
+  if (
+    width > maxDimension ||
+    height > maxDimension
+  ) {
     const scale = Math.min(
       maxDimension / width,
       maxDimension / height
     );
 
-    width = Math.round(width * scale);
-    height = Math.round(height * scale);
+    width =
+      Math.round(width * scale);
+
+    height =
+      Math.round(height * scale);
   }
 
-  const canvas = document.createElement("canvas");
+  const canvas =
+    document.createElement("canvas");
 
   canvas.width = width;
   canvas.height = height;
 
-  const context = canvas.getContext("2d", {
-    alpha: false
-  });
+  const context =
+    canvas.getContext("2d", {
+      alpha: false
+    });
 
   context.drawImage(
     bitmap,
@@ -301,38 +394,56 @@ async function compressImage(blob) {
 
   bitmap.close();
 
-  const compressedBlob = await new Promise(
-    (resolve, reject) => {
-      canvas.toBlob(
-        (result) => {
-          if (result) {
-            resolve(result);
-          } else {
-            reject(
-              new Error("Image compression failed.")
-            );
-          }
-        },
-        "image/jpeg",
-        0.90
-      );
-    }
-  );
+  const compressedBlob =
+    await new Promise(
+      (resolve, reject) => {
+        canvas.toBlob(
+          (result) => {
+            if (result) {
+              resolve(result);
+            } else {
+              reject(
+                new Error(
+                  "Image compression failed."
+                )
+              );
+            }
+          },
+          "image/jpeg",
+          0.90
+        );
+      }
+    );
 
   return compressedBlob;
 }
 
+
+// ============================================
+// RESET
+// ============================================
+
 uploadAnotherButton.addEventListener("click", () => {
   uploadSuccess.hidden = true;
-  selectedPhotoQueue = [];
-  currentPhotoIndex = 0;
+
   capturedPhotoBlob = null;
-  photoSource = null;
+  selectedGalleryFiles = [];
 
   previewImage.src = "";
 
+  photoPreview.hidden = true;
+  batchPreview.hidden = true;
+
+  batchGrid.innerHTML = "";
+
+  batchProgress.hidden = true;
+  batchProgress.textContent = "";
+
   usePhotoButton.disabled = false;
   usePhotoButton.textContent = "Use This Photo";
+
+  uploadAllButton.disabled = false;
+  chooseMoreButton.disabled = false;
 
   galleryInput.value = "";
   nativeCameraInput.value = "";
