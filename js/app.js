@@ -22,7 +22,8 @@ const nativeCameraInput =
 let cameraStream = null;
 let photoSource = null;
 let capturedPhotoBlob = null;
-
+let selectedPhotoQueue = [];
+let currentPhotoIndex = 0;
 
 const uploadSuccess =
   document.getElementById("uploadSuccess");
@@ -76,29 +77,46 @@ uploadPhotoButton.addEventListener("click", () => {
 
 
 galleryInput.addEventListener("change", () => {
-  const file = galleryInput.files[0];
+  const files = Array.from(galleryInput.files);
 
-  if (!file) {
+  if (!files.length) {
     return;
   }
 
-  if (!file.type.startsWith("image/")) {
-    alert("Please choose an image.");
+  const imageFiles = files.filter((file) =>
+    file.type.startsWith("image/")
+  );
+
+  if (!imageFiles.length) {
+    alert("Please choose image files.");
     return;
   }
 
-  console.log("Gallery photo:", file);
+  selectedPhotoQueue = imageFiles;
+  currentPhotoIndex = 0;
+  photoSource = "gallery";
+
+  showCurrentQueuedPhoto();
+});
+
+function showCurrentQueuedPhoto() {
+  if (!selectedPhotoQueue.length) {
+    return;
+  }
+
+  const file = selectedPhotoQueue[currentPhotoIndex];
 
   capturedPhotoBlob = file;
-  photoSource = "gallery";
 
   previewImage.src = URL.createObjectURL(file);
 
-  retakeButton.textContent = "Choose Another Photo";
+  retakeButton.textContent =
+    selectedPhotoQueue.length > 1
+      ? `Photo ${currentPhotoIndex + 1} of ${selectedPhotoQueue.length}`
+      : "Choose Another Photo";
 
   photoPreview.hidden = false;
-});
-
+}
 
 // ============================================
 // PREVIEW / RETAKE
@@ -172,7 +190,23 @@ usePhotoButton.addEventListener("click", async () => {
     capturedPhotoBlob = compressedBlob;
 
     photoPreview.hidden = true;
-    uploadSuccess.hidden = false;
+
+    if (
+      photoSource === "gallery" &&
+      selectedPhotoQueue.length > 1 &&
+      currentPhotoIndex < selectedPhotoQueue.length - 1
+    ) {
+      currentPhotoIndex += 1;
+
+      usePhotoButton.disabled = false;
+      usePhotoButton.textContent = "Use This Photo";
+
+      showCurrentQueuedPhoto();
+
+      return;
+    }
+
+    uploadSuccess.hidden = false; 
 
   } catch (error) {
     console.error("Upload error:", error);
@@ -290,7 +324,8 @@ async function compressImage(blob) {
 
 uploadAnotherButton.addEventListener("click", () => {
   uploadSuccess.hidden = true;
-
+  selectedPhotoQueue = [];
+  currentPhotoIndex = 0;
   capturedPhotoBlob = null;
   photoSource = null;
 
