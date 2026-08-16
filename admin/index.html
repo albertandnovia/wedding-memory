@@ -13,35 +13,92 @@
 
   <main class="admin-shell">
 
-    <header class="admin-header">
-      <div>
-        <p class="eyebrow">Albert & Novia</p>
-        <h1>Wedding Memories</h1>
-      </div>
+    <section class="login-card" id="loginCard">
+      <p class="eyebrow">Albert & Novia</p>
 
-      <button id="refreshButton" type="button">
-        Refresh
-      </button>
-    </header>
+      <h1>Wedding Memories</h1>
 
-    <section class="stats">
-      <p>
-        <strong id="photoCount">0</strong>
-        photos collected
+      <p class="login-intro">
+        Enter the admin password to view the gallery.
+      </p>
+
+      <form id="loginForm">
+        <input
+          id="adminPassword"
+          type="password"
+          placeholder="Admin password"
+          autocomplete="current-password"
+          required
+        />
+
+        <button
+          class="login-button"
+          type="submit"
+        >
+          Open Gallery
+        </button>
+      </form>
+
+      <p
+        class="login-error"
+        id="loginError"
+        hidden
+      >
+        Incorrect password.
       </p>
     </section>
 
+
     <section
-      class="gallery"
-      id="gallery"
-      aria-live="polite"
+      class="gallery-app"
+      id="galleryApp"
+      hidden
     >
-      <p class="loading">
-        Loading memories...
-      </p>
+
+      <header class="admin-header">
+        <div>
+          <p class="eyebrow">Albert & Novia</p>
+          <h1>Wedding Memories</h1>
+        </div>
+
+        <div class="admin-actions">
+          <button
+            id="refreshButton"
+            type="button"
+          >
+            Refresh
+          </button>
+
+          <button
+            id="logoutButton"
+            type="button"
+          >
+            Log Out
+          </button>
+        </div>
+      </header>
+
+      <section class="stats">
+        <p>
+          <strong id="photoCount">0</strong>
+          photos collected
+        </p>
+      </section>
+
+      <section
+        class="gallery"
+        id="gallery"
+        aria-live="polite"
+      >
+        <p class="loading">
+          Loading memories...
+        </p>
+      </section>
+
     </section>
 
   </main>
+
 
   <div
     class="lightbox"
@@ -52,6 +109,7 @@
       class="lightbox-close"
       id="lightboxClose"
       type="button"
+      aria-label="Close photo"
     >
       ×
     </button>
@@ -61,6 +119,7 @@
       alt="Wedding memory"
     />
   </div>
+
 
   <script src="admin.js"></script>
 
