@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Wedding Memories Admin</title>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <main class="admin-shell">
+
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">Albert & Novia</p>
+        <h1>Wedding Memories</h1>
+      </div>
+
+      <button id="refreshButton" type="button">
+        Refresh
+      </button>
+    </header>
+
+    <section class="stats">
+      <p>
+        <strong id="photoCount">0</strong>
+        photos collected
+      </p>
+    </section>
+
+    <section
+      class="gallery"
+      id="gallery"
+      aria-live="polite"
+    >
+      <p class="loading">
+        Loading memories...
+      </p>
+    </section>
+
+  </main>
+
+  <div
+    class="lightbox"
+    id="lightbox"
+    hidden
+  >
+    <button
+      class="lightbox-close"
+      id="lightboxClose"
+      type="button"
+    >
+      ×
+    </button>
+
+    <img
+      id="lightboxImage"
+      alt="Wedding memory"
+    />
+  </div>
+
+  <script src="admin.js"></script>
+
+</body>
+</html>
